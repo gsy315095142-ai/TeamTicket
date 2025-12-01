@@ -228,7 +228,6 @@ const MemberView: React.FC<MemberViewProps> = ({ ticket, onUpdateTicket, initial
                         <div className="text-xs text-gray-800 font-bold mb-0.5">
                             {slot.time}
                         </div>
-                        <div className="text-gray-400 scale-90">已开启</div>
                     </div>
 
                     {/* Seats */}
