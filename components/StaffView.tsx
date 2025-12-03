@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Plus, List, Calendar, Image as ImageIcon, Send, Edit, Trash2, X } from 'lucide-react';
 import { GroupTicket, TimeSlot, StaffTab } from '../types';
 import TimePickerModal from './TimePickerModal';
+import { determinePriceTier } from '../constants';
 
 interface StaffViewProps {
   tickets: GroupTicket[];
@@ -19,7 +20,11 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [remarks, setRemarks] = useState('');
   const [remarkImage, setRemarkImage] = useState<string | undefined>(undefined);
+  
+  // Modal State
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<GroupTicket | null>(null);
+  
   const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,12 +42,6 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const determinePriceTier = (count: number) => {
-    if (count <= 20) return '50元 (15-20人)';
-    if (count <= 30) return '80元 (21-30人)';
-    return '120元 (31-50人)';
   };
 
   const handleHeadcountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +88,37 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
     setSelectedSlots([]);
     setRemarks('');
     setRemarkImage(undefined);
+  };
+
+  const handleEditClick = (ticket: GroupTicket) => {
+    setEditingTicket(ticket);
+    setIsTimePickerOpen(true);
+  };
+
+  const handleTimePickerConfirm = (slots: TimeSlot[], date: string, newHeadcount: number) => {
+    if (editingTicket) {
+        // Edit Mode Logic
+        const updatedTicket = {
+            ...editingTicket,
+            slots: slots,
+            selectedDate: date,
+            headcount: newHeadcount,
+            priceTier: determinePriceTier(newHeadcount)
+        };
+        setTickets(prev => prev.map(t => t.id === editingTicket.id ? updatedTicket : t));
+        setEditingTicket(null);
+        showToast("修改成功");
+    } else {
+        // Create Mode Logic
+        setSelectedSlots(slots);
+        setSelectedDate(date);
+    }
+    setIsTimePickerOpen(false);
+  };
+
+  const handleTimePickerClose = () => {
+    setIsTimePickerOpen(false);
+    setEditingTicket(null);
   };
 
   const totalCapacity = selectedSlots.reduce((acc, slot) => acc + slot.capacity, 0);
@@ -191,7 +221,10 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
               
               <div className="flex justify-center">
                   <button
-                    onClick={() => setIsTimePickerOpen(true)}
+                    onClick={() => {
+                        setEditingTicket(null);
+                        setIsTimePickerOpen(true);
+                    }}
                     className="bg-[#4f83f1] hover:bg-blue-600 text-white py-2 px-10 rounded-lg text-sm font-medium shadow-lg shadow-blue-200 transition-all active:scale-95"
                   >
                     选择场次
@@ -278,6 +311,10 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
                        <List size={14} className="text-blue-400"/>
                        <span className="font-medium">场次：</span>{ticket.slots.length} 个场次 ({ticket.headcount}人)
                     </div>
+                    <div className="flex items-center gap-2">
+                       <span className="text-blue-400 text-xs font-bold w-[14px] text-center">¥</span>
+                       <span className="font-medium">档位：</span>{ticket.priceTier}
+                    </div>
                     {ticket.remarks && (
                         <div className="text-xs text-gray-400 mt-1 pl-6 line-clamp-1 border-t border-dashed border-gray-200 pt-1">
                             备注: {ticket.remarks}
@@ -286,7 +323,10 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
                   </div>
 
                   <div className="flex gap-3">
-                    <button className="flex-1 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-1 transition-colors">
+                    <button 
+                        onClick={() => handleEditClick(ticket)}
+                        className="flex-1 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-1 transition-colors"
+                    >
                       <Edit size={14} /> 修改
                     </button>
                     <button 
@@ -320,13 +360,14 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
       
       <TimePickerModal 
         isOpen={isTimePickerOpen}
-        onClose={() => setIsTimePickerOpen(false)}
-        onConfirm={(slots, date) => {
-          setSelectedSlots(slots);
-          setSelectedDate(date);
-        }}
-        initialDate={selectedDate}
-        initialSelected={selectedSlots}
+        onClose={handleTimePickerClose}
+        onConfirm={handleTimePickerConfirm}
+        initialDate={editingTicket ? editingTicket.selectedDate : selectedDate}
+        initialSelected={editingTicket ? editingTicket.slots : selectedSlots}
+        // Edit Mode specific props
+        enableHeadcountEdit={!!editingTicket}
+        initialHeadcount={editingTicket ? editingTicket.headcount : undefined}
+        onError={showToast}
       />
     </div>
   );

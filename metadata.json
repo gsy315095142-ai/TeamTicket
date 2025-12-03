@@ -1,5 +1,5 @@
 {
-  "name": "TeamTicket Pro",
+  "name": "团票预约模拟",
   "description": "A collaborative tool for staff to generate group ticket packages and for team members to reserve specific time slots and seats via a simulated mobile interface.",
   "requestFramePermissions": []
 }

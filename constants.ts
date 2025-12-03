@@ -33,3 +33,9 @@ export const createEmptySeats = (count: number): Seat[] => {
     user: null,
   }));
 };
+
+export const determinePriceTier = (count: number): string => {
+  if (count <= 20) return '50元 (15-20人)';
+  if (count <= 30) return '80元 (21-30人)';
+  return '120元 (31-50人)';
+};
