@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, List, Calendar, Image as ImageIcon, Send, Edit, Trash2, X } from 'lucide-react';
+import { Plus, List, Calendar, Image as ImageIcon, Send, Edit, Trash2, X, Link as LinkIcon, QrCode } from 'lucide-react';
 import { GroupTicket, TimeSlot, StaffTab } from '../types';
 import TimePickerModal from './TimePickerModal';
 import { determinePriceTier } from '../constants';
@@ -24,6 +24,9 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
   // Modal State
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<GroupTicket | null>(null);
+  
+  // Share Modal State
+  const [sharingTicket, setSharingTicket] = useState<GroupTicket | null>(null);
   
   const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,6 +124,13 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
     setEditingTicket(null);
   };
 
+  const handleSendToLeader = () => {
+    if (sharingTicket) {
+        onSendTicket(sharingTicket);
+        setSharingTicket(null);
+    }
+  };
+
   const totalCapacity = selectedSlots.reduce((acc, slot) => acc + slot.capacity, 0);
 
   return (
@@ -129,6 +139,51 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
       {toast && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/75 text-white px-6 py-3 rounded-lg text-sm font-medium z-50 transition-opacity animate-in fade-in zoom-in duration-200 text-center shadow-lg backdrop-blur-sm max-w-[80%] pointer-events-none">
           {toast}
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {sharingTicket && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+           <div className="bg-gradient-to-b from-blue-50 to-white w-full max-w-sm rounded-2xl shadow-2xl relative overflow-hidden flex flex-col items-center p-6 space-y-5 animate-in zoom-in-95 duration-200">
+              <button 
+                onClick={() => setSharingTicket(null)}
+                className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="text-center space-y-1 mt-2">
+                 <h3 className="text-gray-800 font-bold text-lg">北京·ClubMedJoyview延庆度假村</h3>
+              </div>
+
+              <div className="text-center">
+                 <div className="text-gray-800 text-xl font-bold mb-1">团票({sharingTicket.headcount}人)</div>
+                 <div className="text-gray-500 text-sm">团队唯一ID: {sharingTicket.id.substring(0, 9)}</div>
+              </div>
+
+              {/* QR Code Placeholder */}
+              <div className="w-48 h-48 bg-white border-4 border-white shadow-lg rounded-xl flex items-center justify-center relative">
+                  <QrCode size={160} className="text-gray-800" />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                     <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                        <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center text-white font-bold text-xs">Lumi</div>
+                     </div>
+                  </div>
+              </div>
+
+              <div className="text-center text-xs text-gray-500 leading-relaxed px-4">
+                 请团队负责人扫码、或点击分享链接<br/>
+                 即可在个人中心查看团票预约链接
+              </div>
+
+              <button
+                onClick={handleSendToLeader}
+                className="w-full bg-gradient-to-r from-[#4adce3] to-[#4f83f1] text-white py-3 rounded-full font-bold shadow-lg shadow-blue-200 hover:shadow-blue-300 transform active:scale-[0.98] transition-all mt-2"
+              >
+                发送给团队负责人
+              </button>
+           </div>
         </div>
       )}
 
@@ -330,10 +385,10 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
                       <Edit size={14} /> 修改
                     </button>
                     <button 
-                      onClick={() => onSendTicket(ticket)}
+                      onClick={() => setSharingTicket(ticket)}
                       className="flex-1 py-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-1 shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 transition-all active:scale-95"
                     >
-                      <Send size={14} /> 发送
+                      <LinkIcon size={14} /> 查看团票链接
                     </button>
                   </div>
                 </div>
