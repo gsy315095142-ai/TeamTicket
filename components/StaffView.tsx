@@ -20,7 +20,13 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
   const [remarks, setRemarks] = useState('');
   const [remarkImage, setRemarkImage] = useState<string | undefined>(undefined);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,14 +56,22 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
 
   const handleCreateTicket = () => {
     if (selectedSlots.length === 0) {
-      alert("请至少选择一个场次。");
+      showToast("请至少选择一个场次。");
+      return;
+    }
+
+    const numHeadcount = parseInt(headcount) || 0;
+    const currentCapacity = selectedSlots.reduce((acc, slot) => acc + slot.capacity, 0);
+
+    if (currentCapacity < numHeadcount) {
+      showToast("当前选择的场次人数不足团票人数");
       return;
     }
 
     const newTicket: GroupTicket = {
       id: Date.now().toString(),
       packageName: '团票',
-      headcount: parseInt(headcount) || 0,
+      headcount: numHeadcount,
       priceTier,
       selectedDate,
       slots: selectedSlots,
@@ -80,7 +94,14 @@ const StaffView: React.FC<StaffViewProps> = ({ tickets, setTickets, onSendTicket
   const totalCapacity = selectedSlots.reduce((acc, slot) => acc + slot.capacity, 0);
 
   return (
-    <div className="flex flex-col h-full bg-[#f6f7f9]">
+    <div className="flex flex-col h-full bg-[#f6f7f9] relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/75 text-white px-6 py-3 rounded-lg text-sm font-medium z-50 transition-opacity animate-in fade-in zoom-in duration-200 text-center shadow-lg backdrop-blur-sm max-w-[80%] pointer-events-none">
+          {toast}
+        </div>
+      )}
+
       {/* Header Tabs */}
       <div className="flex bg-white shadow-sm z-10">
         <button
